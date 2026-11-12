@@ -1,0 +1,10 @@
+{
+  "key.blockscanner.open_config": "Open BlockScanner Ultimate settings",
+  "key.blockscanner.scanner": "Toggle chunk scanner",
+  "key.blockscanner.esp": "Toggle block ESP",
+  "key.blockscanner.minimap": "Toggle radar minimap",
+  "key.blockscanner.alerts": "Toggle alerts",
+  "key.blockscanner.freecam": "Toggle single-player freecam",
+  "key.blockscanner.name_protect": "Toggle local Name Protect",
+  "category.blockscanner": "BlockScanner Ultimate"
+}

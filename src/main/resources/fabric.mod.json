@@ -1,38 +1,28 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "blockscanner",
 	"version": "${version}",
-	"name": "Example Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
-	"environment": "*",
+	"name": "BlockScanner Ultimate",
+	"description": "Authorized local-world security research and synthetic anti-cheat robustness testing toolkit.",
+	"authors": ["Security Research Team"],
+	"contact": {},
+	"license": "MIT",
+	"environment": "client",
 	"entrypoints": {
 		"main": [
-			"com.example.ExampleMod"
+			"com.blockscanner.ModScannerMod"
 		],
 		"client": [
-			"com.example.client.ExampleModClient"
+			"com.blockscanner.BlockScannerClient"
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
-		{
-			"config": "modid.client.mixins.json",
-			"environment": "client"
-		}
+		"blockscanner.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.20.1",
-		"minecraft": "~26.3",
-		"java": ">=25",
+		"fabricloader": ">=0.16.10",
+		"minecraft": "~1.21.4",
+		"java": ">=21",
 		"fabric-api": "*"
 	}
 }
