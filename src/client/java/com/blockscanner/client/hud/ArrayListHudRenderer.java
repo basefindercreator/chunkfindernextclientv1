@@ -6,9 +6,9 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 
 public final class ArrayListHudRenderer {
 	private static final int ROW_HEIGHT = 12;
@@ -18,10 +18,11 @@ public final class ArrayListHudRenderer {
 	private ArrayListHudRenderer() {
 	}
 
-	public static void render(DrawContext context) {
-		MinecraftClient client = MinecraftClient.getInstance();
+	public static void render(GuiGraphicsExtractor context) {
+		Minecraft client = Minecraft.getInstance();
 		ScannerConfig config = ScannerConfig.get();
-		if (!config.arrayListEnabled || client.player == null || client.options.hudHidden || client.currentScreen != null) {
+		if (!config.arrayListEnabled || client.player == null || client.gui.hud.isHidden()
+				|| client.gui.screen() != null) {
 			return;
 		}
 
@@ -29,14 +30,14 @@ public final class ArrayListHudRenderer {
 		if (active.isEmpty()) {
 			return;
 		}
-		active.sort(Comparator.comparingInt((String name) -> client.textRenderer.getWidth(name)).reversed());
-		int maxTextWidth = active.stream().mapToInt(client.textRenderer::getWidth).max().orElse(0);
+		active.sort(Comparator.comparingInt((String name) -> client.font.width(name)).reversed());
+		int maxTextWidth = active.stream().mapToInt(client.font::width).max().orElse(0);
 		int panelWidth = maxTextWidth + PAD_X * 2 + 3;
 		int panelHeight = active.size() * ROW_HEIGHT + 4;
 		boolean right = config.arrayListCorner.endsWith("RIGHT");
 		boolean bottom = config.arrayListCorner.startsWith("BOTTOM");
-		int screenWidth = context.getScaledWindowWidth();
-		int screenHeight = context.getScaledWindowHeight();
+		int screenWidth = context.guiWidth();
+		int screenHeight = context.guiHeight();
 		int left = right ? screenWidth - panelWidth - MARGIN : MARGIN;
 		int top = bottom ? screenHeight - panelHeight - MARGIN : MARGIN;
 		int rightEdge = left + panelWidth;
@@ -47,13 +48,13 @@ public final class ArrayListHudRenderer {
 			String name = active.get(index);
 			int rowTop = top + 2 + index * ROW_HEIGHT;
 			int color = colorFor(config, index, active.size(), time);
-			int textWidth = client.textRenderer.getWidth(name);
+			int textWidth = client.font.width(name);
 			int textX = right ? rightEdge - PAD_X - textWidth : left + PAD_X + 3;
 			int barX = right ? rightEdge - 3 : left;
 			context.fill(barX, rowTop, barX + 2, rowTop + ROW_HEIGHT - 2, color);
 			context.fill(right ? left : left + 3, rowTop, right ? rightEdge - 3 : rightEdge,
 					rowTop + ROW_HEIGHT - 2, (index & 1) == 0 ? 0x24FFFFFF : 0x14FFFFFF);
-			context.drawTextWithShadow(client.textRenderer, Text.literal(name), textX, rowTop + 1, 0xFFEAF2EE);
+			context.text(client.font, Component.literal(name), textX, rowTop + 1, 0xFFEAF2EE);
 		}
 	}
 

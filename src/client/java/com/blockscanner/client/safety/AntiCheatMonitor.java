@@ -2,7 +2,7 @@ package com.blockscanner.client.safety;
 
 import com.blockscanner.client.BlockScannerClient;
 import com.blockscanner.client.ScannerConfig;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 public final class AntiCheatMonitor {
 	private static long warningUntil;
@@ -10,7 +10,7 @@ public final class AntiCheatMonitor {
 	private AntiCheatMonitor() {
 	}
 
-	public static void simulateFlag(MinecraftClient client) {
+	public static void simulateFlag(Minecraft client) {
 		if (BlockScannerClient.isLocalWorld(client) && ScannerConfig.get().safetyTestMode) {
 			warningUntil = System.currentTimeMillis() + 7000;
 		}

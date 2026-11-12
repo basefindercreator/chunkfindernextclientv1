@@ -27,18 +27,25 @@ public final class ScannerConfig {
 	public int radarScopeChunks = 100;
 	public int chunkColor = 0x42F56C;
 	public int flaggedChunkColor = 0x42F56C;
+	public int doubleChestColor = 0xFF8C00;
 	public int entityColor = 0x47D7FF;
 	public int arrayListColor = 0x42F56C;
 	public String arrayListColorMode = "RAINBOW";
 	public String arrayListCorner = "TOP_RIGHT";
-	public Map<String, Integer> blockColors = new LinkedHashMap<>(Map.of(
-			"minecraft:chest", 0x42F56C,
-			"minecraft:hopper", 0x47D7FF));
+	public Map<String, Integer> blockColors = defaultBlockColors();
 	public String blockFilter = "chest,hopper";
 	public String entityFilter = "";
 	public String protectedName = "Player";
 
 	private ScannerConfig() {
+	}
+
+	private static Map<String, Integer> defaultBlockColors() {
+		Map<String, Integer> colors = new LinkedHashMap<>();
+		colors.put("minecraft:chest", 0xFF3030);
+		colors.put("minecraft:trapped_chest", 0xFF3030);
+		colors.put("minecraft:hopper", 0x47D7FF);
+		return colors;
 	}
 
 	public static ScannerConfig get() {
@@ -74,6 +81,7 @@ public final class ScannerConfig {
 		radarScopeChunks = Math.max(1, Math.min(100, radarScopeChunks));
 		chunkColor &= 0xFFFFFF;
 		flaggedChunkColor &= 0xFFFFFF;
+		doubleChestColor &= 0xFFFFFF;
 		entityColor &= 0xFFFFFF;
 		arrayListColor &= 0xFFFFFF;
 		if (!"STATIC".equals(arrayListColorMode) && !"RAINBOW".equals(arrayListColorMode)) {
@@ -88,7 +96,8 @@ public final class ScannerConfig {
 			blockColors = new LinkedHashMap<>();
 		}
 		blockColors.replaceAll((id, color) -> color & 0xFFFFFF);
-		blockColors.putIfAbsent("minecraft:chest", 0x42F56C);
+		blockColors.putIfAbsent("minecraft:chest", 0xFF3030);
+		blockColors.putIfAbsent("minecraft:trapped_chest", 0xFF3030);
 		blockColors.putIfAbsent("minecraft:hopper", 0x47D7FF);
 		if (blockFilter == null) {
 			blockFilter = "";

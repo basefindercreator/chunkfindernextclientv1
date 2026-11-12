@@ -1,25 +1,33 @@
 package com.blockscanner.client.mixin;
 
 import com.blockscanner.client.nameprotect.NameProtectManager;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.OrderedText;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-@Mixin(TextRenderer.class)
+@Mixin(GuiGraphicsExtractor.class)
 public abstract class TextRendererMixin {
 	@ModifyVariable(
-			method = "drawInternal(Ljava/lang/String;FFIZLorg/joml/Matrix4f;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/font/TextRenderer$TextLayerType;IIZ)I",
+			method = "text(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V",
 			at = @At("HEAD"), argsOnly = true, ordinal = 0)
 	private String blockscanner$protectPlainText(String text) {
 		return NameProtectManager.replace(text);
 	}
 
 	@ModifyVariable(
-			method = "drawInternal(Lnet/minecraft/text/OrderedText;FFIZLorg/joml/Matrix4f;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/font/TextRenderer$TextLayerType;IIZ)I",
+			method = "text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;III)V",
 			at = @At("HEAD"), argsOnly = true, ordinal = 0)
-	private OrderedText blockscanner$protectFormattedText(OrderedText text) {
+	private FormattedCharSequence blockscanner$protectFormattedText(FormattedCharSequence text) {
 		return NameProtectManager.replace(text);
+	}
+
+	@ModifyVariable(
+			method = "text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V",
+			at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private Component blockscanner$protectComponent(Component text) {
+		return Component.literal(NameProtectManager.replace(text.getString()));
 	}
 }

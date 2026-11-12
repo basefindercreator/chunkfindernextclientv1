@@ -1,11 +1,12 @@
 package com.blockscanner.client.scanner;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 
 public record ScanTarget(BlockPos pos, Kind kind, String blockId) {
 	public enum Kind {
 		CHEST,
 		HOPPER,
-		CONTAINER_CLUSTER
+		CONTAINER_CLUSTER,
+		BLOCK
 	}
 }

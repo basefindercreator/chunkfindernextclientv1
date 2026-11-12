@@ -2,8 +2,8 @@ package com.blockscanner.client.safety;
 
 import com.blockscanner.client.BlockScannerClient;
 import com.blockscanner.client.ScannerConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 public final class StaffTracker {
 	private static String simulatedStaffName;
@@ -12,7 +12,7 @@ public final class StaffTracker {
 	private StaffTracker() {
 	}
 
-	public static void simulateWatching(MinecraftClient client) {
+	public static void simulateWatching(Minecraft client) {
 		if (!BlockScannerClient.isLocalWorld(client) || !ScannerConfig.get().safetyTestMode) {
 			return;
 		}
@@ -20,7 +20,7 @@ public final class StaffTracker {
 		visibleUntil = System.currentTimeMillis() + 10000;
 	}
 
-	public static void simulateStopped(MinecraftClient client) {
+	public static void simulateStopped(Minecraft client) {
 		if (!BlockScannerClient.isLocalWorld(client) || !ScannerConfig.get().safetyTestMode
 				|| simulatedStaffName == null) {
 			return;
@@ -28,8 +28,9 @@ public final class StaffTracker {
 		String name = simulatedStaffName;
 		simulatedStaffName = null;
 		visibleUntil = 0;
-		if (client.inGameHud != null) {
-			client.inGameHud.getChatHud().addMessage(Text.literal("[TEST] Staff member " + name + " stopped watching you."));
+		if (client.gui != null) {
+			client.gui.hud.getChat().addClientSystemMessage(
+					Component.literal("[TEST] Staff member " + name + " stopped watching you."));
 		}
 	}
 

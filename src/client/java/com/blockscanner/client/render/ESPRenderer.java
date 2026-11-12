@@ -4,81 +4,98 @@ import com.blockscanner.client.BlockScannerClient;
 import com.blockscanner.client.ScannerConfig;
 import com.blockscanner.client.scanner.ChunkPatternAnalyzer;
 import com.blockscanner.client.scanner.ScanTarget;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexRendering;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import net.minecraft.client.util.math.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
+import java.util.ArrayList;
+import java.util.Comparator;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
 
 public final class ESPRenderer {
-	private static final float ALPHA = 0.88F;
+	private static final int MAX_TRACERS = 128;
 
 	private ESPRenderer() {
 	}
 
-	public static void render(WorldRenderContext context, ChunkPatternAnalyzer analyzer) {
-		MinecraftClient client = MinecraftClient.getInstance();
+	public static void render(LevelRenderContext context, ChunkPatternAnalyzer analyzer) {
+		Minecraft client = Minecraft.getInstance();
 		ScannerConfig config = ScannerConfig.get();
-		World world = context.world();
-		if (!BlockScannerClient.isLocalWorld(client) || !config.enabled || !config.espEnabled
-				|| world == null || context.matrixStack() == null || context.consumers() == null) {
+		if (!BlockScannerClient.isLocalWorld(client) || !config.enabled || !config.espEnabled || client.level == null) {
 			return;
 		}
 
-		MatrixStack matrices = context.matrixStack();
-		VertexConsumerProvider consumers = context.consumers();
-		VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
-		Vec3d camera = context.camera().getPos();
-		int minY = world.getBottomY();
-		int maxY = world.getBottomY() + world.getHeight();
-
-		matrices.push();
-		matrices.translate(-camera.x, -camera.y, -camera.z);
-		RenderSystem.disableDepthTest();
-		RenderSystem.enableBlend();
-		RenderSystem.defaultBlendFunc();
-		RenderSystem.lineWidth(2.0F);
+		Vec3 camera = client.gameRenderer.mainCamera().position();
+		var pose = context.poseStack();
+		var submits = context.submitNodeCollector();
+		pose.pushPose();
+		pose.translate(-camera.x, -camera.y, -camera.z);
 		try {
-			float[] flagColor = color(config.flaggedChunkColor);
-			Set<Long> flags = analyzer.flaggedChunks();
-			for (long packedChunk : flags) {
-				int chunkX = ChunkPos.getPackedX(packedChunk);
-				int chunkZ = ChunkPos.getPackedZ(packedChunk);
-				Box chunkBox = new Box(chunkX * 16.0, minY, chunkZ * 16.0,
-						chunkX * 16.0 + 16.0, maxY, chunkZ * 16.0 + 16.0);
-				VertexRendering.drawBox(matrices, lines, chunkBox, flagColor[0], flagColor[1], flagColor[2], ALPHA);
+			for (long packedChunk : analyzer.flaggedChunks()) {
+				int x = ChunkPos.getX(packedChunk);
+				int z = ChunkPos.getZ(packedChunk);
+				AABB chunkBounds = new AABB(x * 16.0, client.level.getMinY(), z * 16.0,
+						(x + 1) * 16.0, client.level.getMaxY(), (z + 1) * 16.0);
+				submits.submitShapeOutline(pose, Shapes.create(chunkBounds),
+						RenderTypes.linesTranslucentNoDepthWrite(), config.flaggedChunkColor | 0xFF000000, 2.0F, false);
+			}
+			for (long packedChunk : analyzer.baseFlaggedChunks()) {
+				int x = ChunkPos.getX(packedChunk);
+				int z = ChunkPos.getZ(packedChunk);
+				AABB chunkBounds = new AABB(x * 16.0, client.level.getMinY(), z * 16.0,
+						(x + 1) * 16.0, client.level.getMaxY(), (z + 1) * 16.0);
+				submits.submitShapeOutline(pose, Shapes.create(chunkBounds),
+						RenderTypes.linesTranslucentNoDepthWrite(), 0xFF38BDF8, 2.0F, false);
 			}
 
-			for (List<ScanTarget> targets : analyzer.results().values()) {
-				for (ScanTarget target : targets) {
-					BlockPos pos = target.pos();
-					Box targetBox = new Box(pos).expand(0.03);
-					int rgb = config.blockColors.getOrDefault(target.blockId(), config.chunkColor);
-					float[] targetColor = color(rgb);
-					VertexRendering.drawBox(matrices, lines, targetBox, targetColor[0], targetColor[1], targetColor[2], ALPHA);
+			Vec3 eye = new Vec3(client.player.getX(), client.player.getEyeY(), client.player.getZ());
+			List<ScanTarget> targets = new ArrayList<>();
+			for (Map.Entry<Long, List<ScanTarget>> entry : analyzer.results().entrySet()) {
+				for (ScanTarget target : entry.getValue()) {
+					if (config.blockColors.containsKey(target.blockId())) {
+						targets.add(target);
+					}
 				}
 			}
+			targets.sort(Comparator.comparingDouble(target -> {
+				BlockPos pos = target.pos();
+				double dx = pos.getX() + 0.5 - eye.x;
+				double dy = pos.getY() + 0.5 - eye.y;
+				double dz = pos.getZ() + 0.5 - eye.z;
+				return dx * dx + dy * dy + dz * dz;
+			}));
+			for (int index = 0; index < Math.min(MAX_TRACERS, targets.size()); index++) {
+				ScanTarget target = targets.get(index);
+				BlockPos pos = target.pos();
+				int rgb = target.kind() == ScanTarget.Kind.CONTAINER_CLUSTER
+						? config.doubleChestColor
+						: config.blockColors.getOrDefault(target.blockId(), config.chunkColor);
+				int color = 0xFF000000 | (rgb & 0xFFFFFF);
+				submits.submitShapeOutline(pose, Shapes.block().move(pos.getX(), pos.getY(), pos.getZ()),
+						RenderTypes.linesTranslucentNoDepthWrite(), color, 2.0F, false);
+				Vec3 destination = Vec3.atCenterOf(pos);
+				submits.submitCustomGeometry(pose, RenderTypes.linesTranslucentNoDepthWrite(),
+						(linePose, vertices) -> drawTracer(linePose, vertices, eye, destination, color));
+			}
 		} finally {
-			RenderSystem.lineWidth(1.0F);
-			RenderSystem.disableBlend();
-			RenderSystem.enableDepthTest();
-			matrices.pop();
+			pose.popPose();
 		}
 	}
 
-	private static float[] color(int rgb) {
-		return new float[] {((rgb >> 16) & 0xFF) / 255.0F, ((rgb >> 8) & 0xFF) / 255.0F,
-				(rgb & 0xFF) / 255.0F};
+	private static void drawTracer(com.mojang.blaze3d.vertex.PoseStack.Pose pose, VertexConsumer vertices,
+			Vec3 start, Vec3 end, int color) {
+		Vec3 direction = end.subtract(start).normalize();
+		vertices.addVertex(pose, (float) start.x, (float) start.y, (float) start.z)
+				.setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z)
+				.setLineWidth(2.0F);
+		vertices.addVertex(pose, (float) end.x, (float) end.y, (float) end.z)
+				.setColor(color).setNormal(pose, (float) direction.x, (float) direction.y, (float) direction.z)
+				.setLineWidth(2.0F);
 	}
 }

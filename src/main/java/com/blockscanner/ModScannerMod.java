@@ -10,6 +10,7 @@ public final class ModScannerMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		PlayerActivityTracker.initialize();
 		LOGGER.info("Initializing BlockScanner Ultimate for local security research and synthetic testing.");
 	}
 }

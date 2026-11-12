@@ -4,9 +4,9 @@ import com.blockscanner.client.BlockScannerClient;
 import com.blockscanner.client.ScannerConfig;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
 
 public final class NameProtectManager {
 	private NameProtectManager() {
@@ -18,7 +18,7 @@ public final class NameProtectManager {
 		return realName.isEmpty() || alias.isEmpty() || realName.equals(alias) ? text : text.replace(realName, alias);
 	}
 
-	public static OrderedText replace(OrderedText text) {
+	public static FormattedCharSequence replace(FormattedCharSequence text) {
 		String realName = protectedPlayerName();
 		String alias = alias();
 		if (realName.isEmpty() || alias.isEmpty() || realName.equals(alias)) {
@@ -63,7 +63,7 @@ public final class NameProtectManager {
 		};
 	}
 
-	private static boolean contains(OrderedText text, int[] search) {
+	private static boolean contains(FormattedCharSequence text, int[] search) {
 		int[] recent = new int[search.length];
 		long[] visited = {0};
 		boolean[] found = {false};
@@ -98,11 +98,11 @@ public final class NameProtectManager {
 	}
 
 	private static String protectedPlayerName() {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		if (!ScannerConfig.get().nameProtectEnabled || !BlockScannerClient.isLocalWorld(client)) {
 			return "";
 		}
-		return client.player.getGameProfile().getName();
+		return client.player.getGameProfile().name();
 	}
 
 	private static String alias() {
